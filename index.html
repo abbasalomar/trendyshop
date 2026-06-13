@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TrendyShop PRO MAX</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#f4f4f4;
+}
+
+/* HEADER */
+header{
+  background:#ff5d00;
+  color:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+header input{
+  padding:10px;
+  width:40%;
+  border:none;
+  border-radius:8px;
+}
+
+/* GRID */
+#grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  padding:20px;
+}
+
+/* CARD */
+.card{
+  background:white;
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.1);
+  transition:.3s;
+}
+
+.card:hover{transform:scale(1.03)}
+
+.card img{
+  width:100%;
+  border-radius:10px;
+}
+
+.price{color:#ff5d00;font-weight:bold}
+
+/* BUTTONS */
+.btns{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
+
+button{
+  border:none;
+  padding:7px;
+  cursor:pointer;
+  border-radius:6px;
+  background:#ff5d00;
+  color:white;
+}
+
+/* CART PANEL */
+#cart{
+  position:fixed;
+  right:0;
+  top:0;
+  width:320px;
+  height:100%;
+  background:white;
+  box-shadow:-5px 0 10px rgba(0,0,0,0.2);
+  padding:15px;
+  overflow:auto;
+  display:none;
+}
+
+/* MODAL */
+#modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-box{
+  background:white;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:black;
+  color:white;
+  padding:10px;
+  border-radius:6px;
+}
+
+/* MOBILE */
+@media(max-width:768px){
+  #grid{grid-template-columns:repeat(2,1fr)}
+  header input{width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>🛒 PRO MAX SHOP</h2>
+  <input id="search" placeholder="Search products...">
+  <div>
+    <button onclick="toggleCart()">Cart 🧺 (<span id="cartCount">0</span>)</button>
+    <button onclick="showFav()">❤ Fav</button>
+  </div>
+</header>
+
+<main id="grid"></main>
+
+<!-- CART -->
+<div id="cart"></div>
+
+<!-- MODAL -->
+<div id="modal" onclick="closeModal(event)">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+const products = [
+ {id:1,name:"Shoes",price:120,img:"https://via.placeholder.com/200",desc:"Sport shoes"},
+ {id:2,name:"Watch",price:200,img:"https://via.placeholder.com/200",desc:"Luxury watch"},
+ {id:3,name:"Bag",price:90,img:"https://via.placeholder.com/200",desc:"Travel bag"},
+ {id:4,name:"Phone",price:900,img:"https://via.placeholder.com/200",desc:"Smartphone"},
+ {id:5,name:"Laptop",price:1500,img:"https://via.placeholder.com/200",desc:"Gaming laptop"},
+ {id:6,name:"Headphones",price:300,img:"https://via.placeholder.com/200",desc:"Wireless audio"}
+];
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let fav = JSON.parse(localStorage.getItem("fav")) || [];
+
+const grid = document.getElementById("grid");
+
+/* RENDER */
+function render(list){
+  grid.innerHTML="";
+  list.forEach(p=>{
+    grid.innerHTML += `
+      <div class="card">
+        <img src="${p.img}" onclick="openModal(${p.id})">
+        <h3>${p.name}</h3>
+        <p class="price">${p.price}$</p>
+
+        <div class="btns">
+          <button onclick="addCart(${p.id})">Add</button>
+          <button onclick="addFav(${p.id})">❤</button>
+        </div>
+      </div>
+    `;
+  });
+}
+render(products);
+
+/* SEARCH */
+document.getElementById("search").addEventListener("input",(e)=>{
+  let v=e.target.value.toLowerCase();
+  render(products.filter(p=>p.name.toLowerCase().includes(v)));
+});
+
+/* CART */
+function addCart(id){
+  cart.push(id);
+  localStorage.setItem("cart",JSON.stringify(cart));
+  updateCart();
+  toast("Added to cart");
+}
+
+/* FAVORITE */
+function addFav(id){
+  fav.push(id);
+  localStorage.setItem("fav",JSON.stringify(fav));
+  toast("Added to favorites");
+}
+
+/* CART PANEL */
+function toggleCart(){
+  let box=document.getElementById("cart");
+
+  if(box.style.display=="block"){
+    box.style.display="none";
+    return;
+  }
+
+  box.style.display="block";
+
+  box.innerHTML="<h2>Cart</h2>";
+
+  cart.forEach((id,i)=>{
+    let p=products.find(x=>x.id==id);
+    box.innerHTML += `
+      <p>
+        ${p.name} - ${p.price}$
+        <button onclick="removeItem(${i})">X</button>
+      </p>
+    `;
+  });
+}
+
+/* REMOVE ITEM */
+function removeItem(i){
+  cart.splice(i,1);
+  localStorage.setItem("cart",JSON.stringify(cart));
+  toggleCart();
+  toggleCart();
+  updateCart();
+}
+
+/* MODAL */
+function openModal(id){
+  let p=products.find(x=>x.id==id);
+
+  document.getElementById("modalBox").innerHTML=`
+    <h2>${p.name}</h2>
+    <img src="${p.img}" style="width:100%">
+    <p>${p.desc}</p>
+    <p>${p.price}$</p>
+  `;
+
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(e){
+  if(e.target.id=="modal"){
+    document.getElementById("modal").style.display="none";
+  }
+}
+
+/* CART COUNT */
+function updateCart(){
+  document.getElementById("cartCount").innerText=cart.length;
+}
+updateCart();
+
+/* FAVORITES VIEW */
+function showFav(){
+  alert("Favorites: "+fav.length);
+}
+
+/* TOAST */
+function toast(msg){
+  let t=document.createElement("div");
+  t.className="toast";
+  t.innerText=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1500);
+}
+</script>
+
+</body>
+</html>
